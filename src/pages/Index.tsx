@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, BookOpen, Calendar } from "lucide-react";
 import { ScanButton } from "@/components/ScanButton";
@@ -24,6 +24,8 @@ export default function Index() {
   const [subspecialty, setSubspecialty] = useState<SubspecialtyId>("all");
   const [subspecialtyCounts, setSubspecialtyCounts] = useState<Record<string, number>>({});
   const [cachedArticles, setCachedArticles] = useState<PubMedArticle[] | null>(null);
+  const [rateLimitMsg, setRateLimitMsg] = useState<string | null>(null);
+  const scanTimestamps = useRef<number[]>([]);
 
   const runAnalysis = useCallback(async (articles: PubMedArticle[], spec: SubspecialtyId) => {
     setProgress((prev) => prev ? { ...prev, phase: "analyzing" } : {
@@ -57,10 +59,26 @@ export default function Index() {
     setProgress((prev) => prev ? { ...prev, phase: "done" } : null);
   }, []);
 
+  const checkRateLimit = useCallback((): boolean => {
+    const now = Date.now();
+    const oneMinuteAgo = now - 60_000;
+    scanTimestamps.current = scanTimestamps.current.filter((t) => t > oneMinuteAgo);
+    if (scanTimestamps.current.length >= 2) {
+      setRateLimitMsg("Please wait before running another scan.");
+      setTimeout(() => setRateLimitMsg(null), 5000);
+      return false;
+    }
+    scanTimestamps.current.push(now);
+    return true;
+  }, []);
+
   const handleScan = useCallback(async () => {
+    if (!checkRateLimit()) return;
+
     setIsScanning(true);
     setResults(null);
     setProgress(null);
+    setRateLimitMsg(null);
 
     try {
       const articles = await scanJournals((p) => setProgress(p));
@@ -72,7 +90,7 @@ export default function Index() {
     } finally {
       setIsScanning(false);
     }
-  }, [subspecialty, runAnalysis]);
+  }, [subspecialty, runAnalysis, checkRateLimit]);
 
   const handleSubspecialtyChange = useCallback(async (spec: SubspecialtyId) => {
     setSubspecialty(spec);
@@ -153,6 +171,12 @@ export default function Index() {
 
               <ScanButton isScanning={false} onScan={handleScan} />
 
+              {rateLimitMsg && (
+                <p className="text-sm text-destructive font-medium animate-pulse">
+                  {rateLimitMsg}
+                </p>
+              )}
+
               <div className="flex items-center gap-6 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <BookOpen className="w-3.5 h-3.5" />
@@ -208,6 +232,12 @@ export default function Index() {
                 </div>
                 <ScanButton isScanning={isScanning} onScan={handleScan} />
               </div>
+
+              {rateLimitMsg && (
+                <p className="text-sm text-destructive font-medium animate-pulse">
+                  {rateLimitMsg}
+                </p>
+              )}
 
               {/* Subspecialty filter */}
               <SubspecialtyFilter
