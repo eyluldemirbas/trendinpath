@@ -160,7 +160,7 @@ export default function Index() {
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5" />
-                  30-day window
+                  90-day window
                 </span>
               </div>
             </motion.div>
