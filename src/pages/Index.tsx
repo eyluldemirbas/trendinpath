@@ -24,6 +24,8 @@ export default function Index() {
   const [subspecialty, setSubspecialty] = useState<SubspecialtyId>("all");
   const [subspecialtyCounts, setSubspecialtyCounts] = useState<Record<string, number>>({});
   const [cachedArticles, setCachedArticles] = useState<PubMedArticle[] | null>(null);
+  const [rateLimitMsg, setRateLimitMsg] = useState<string | null>(null);
+  const scanTimestamps = useRef<number[]>([]);
 
   const runAnalysis = useCallback(async (articles: PubMedArticle[], spec: SubspecialtyId) => {
     setProgress((prev) => prev ? { ...prev, phase: "analyzing" } : {
