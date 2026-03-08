@@ -35,7 +35,9 @@ export default function Index() {
 
       // Phase 2: Detect trends
       setProgress((prev) => prev ? { ...prev, phase: "analyzing" } : null);
-      const trends = detectTrends(articles, 10);
+      const trends = await detectTrends(articles, 10, (msg) =>
+        setProgress((prev) => prev ? { ...prev, currentJournal: msg } : null)
+      );
 
       // Phase 3: Expand each topic with relevant articles
       setProgress((prev) => prev ? { ...prev, phase: "expanding" } : null);
