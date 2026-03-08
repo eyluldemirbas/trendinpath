@@ -115,7 +115,7 @@ export default function Index() {
                 TrendInPath
               </h1>
               <p className="text-xs text-muted-foreground">
-                Monthly Pathology Trend Scanner
+                Quarterly Pathology Trend Scanner
               </p>
             </div>
           </div>
