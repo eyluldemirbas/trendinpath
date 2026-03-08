@@ -11,6 +11,9 @@ export interface TrendingTopic {
   summary?: string;
   representativeTerms?: string[];
   coherenceScore?: number;
+  recentCount?: number;
+  baselineCount?: number;
+  trendDirection?: "rising" | "stable" | "declining";
 }
 
 interface ClusterResult {
