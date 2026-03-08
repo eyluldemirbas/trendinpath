@@ -190,10 +190,10 @@ export default function Index() {
               <div className="flex flex-wrap items-center justify-between gap-4 p-5 bg-card border border-border rounded-lg">
                 <div className="space-y-1">
                   <h2 className="font-display font-bold text-xl text-foreground">
-                    Monthly Pathology Trend Report
+                    Quarterly Pathology Trend Report
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    {monthYear}
+                    {quarterLabel}
                   </p>
                 </div>
                 <div className="flex items-center gap-8 text-sm">
