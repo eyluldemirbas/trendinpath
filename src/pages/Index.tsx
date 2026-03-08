@@ -6,6 +6,7 @@ import { ScanProgressIndicator } from "@/components/ScanProgress";
 import { TrendCard } from "@/components/TrendCard";
 import { ExportButtons } from "@/components/ExportButtons";
 import { SubspecialtyFilter } from "@/components/SubspecialtyFilter";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   scanJournals,
   type PubMedArticle,
