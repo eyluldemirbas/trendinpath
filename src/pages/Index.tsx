@@ -233,6 +233,12 @@ export default function Index() {
                 <ScanButton isScanning={isScanning} onScan={handleScan} />
               </div>
 
+              {rateLimitMsg && (
+                <p className="text-sm text-destructive font-medium animate-pulse">
+                  {rateLimitMsg}
+                </p>
+              )}
+
               {/* Subspecialty filter */}
               <SubspecialtyFilter
                 selected={subspecialty}
