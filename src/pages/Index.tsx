@@ -33,44 +33,22 @@ export default function Index() {
       const articles = await scanJournals((p) => setProgress(p));
       setTotalArticles(articles.length);
 
-      // Phase 2: Detect trends
+      // Phase 2: Detect trends via AI clustering
       setProgress((prev) => prev ? { ...prev, phase: "analyzing" } : null);
       const trends = await detectTrends(articles, 10, (msg) =>
         setProgress((prev) => prev ? { ...prev, currentJournal: msg } : null)
       );
 
-      // Phase 3: Expand each topic with relevant articles
+      // Phase 3: Match articles to each topic cluster
       setProgress((prev) => prev ? { ...prev, phase: "expanding" } : null);
       const topicData: TopicWithArticles[] = [];
 
       for (const topic of trends) {
-        // Get articles from the initial scan that match
-        const directArticles = articles.filter((a) =>
+        // Get articles from the initial scan that match the cluster PMIDs
+        const clusterArticles = articles.filter((a) =>
           topic.relatedPmids.includes(a.pmid)
         );
-
-        // Also search PubMed for more relevant articles
-        let expandedArticles: PubMedArticle[] = [];
-        try {
-          const pmids = await searchPubMedNoDate(
-            `${topic.phrase} AND (pathology OR histopathology)`,
-            10
-          );
-          const newPmids = pmids.filter(
-            (id) => !directArticles.some((a) => a.pmid === id)
-          );
-          if (newPmids.length > 0) {
-            expandedArticles = await fetchArticles(newPmids);
-          }
-        } catch {
-          // If expansion fails, just use direct articles
-        }
-
-        const combined = [...directArticles, ...expandedArticles].slice(0, 10);
-        topicData.push({ topic, articles: combined });
-
-        // Small delay for rate limiting
-        await new Promise((r) => setTimeout(r, 350));
+        topicData.push({ topic, articles: clusterArticles.slice(0, 10) });
       }
 
       setResults(topicData);
@@ -82,7 +60,6 @@ export default function Index() {
       setIsScanning(false);
     }
   }, []);
-
   return (
     <div className="min-h-screen bg-background grid-pattern">
       {/* Header */}
