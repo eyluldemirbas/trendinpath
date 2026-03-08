@@ -97,6 +97,9 @@ export async function detectTrends(
     summary: cluster.summary,
     representativeTerms: cluster.representativeTerms,
     coherenceScore: cluster.coherenceScore,
+    recentCount: cluster.recentCount,
+    baselineCount: cluster.baselineCount,
+    trendDirection: cluster.trendDirection,
   }));
 
   return { topics, subspecialtyCounts };
