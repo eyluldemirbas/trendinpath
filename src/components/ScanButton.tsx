@@ -24,7 +24,7 @@ export function ScanButton({ isScanning, onScan }: ScanButtonProps) {
         ) : (
           <>
             <Search className="mr-2 h-4 w-4" />
-            Run PathScan
+            Run PathPulse
           </>
         )}
       </Button>
