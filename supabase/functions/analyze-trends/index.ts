@@ -388,11 +388,11 @@ serve(async (req) => {
       }
     }
 
-    // Step 3: Sort by quality score, take top 200
+    // Step 3: Sort by quality score, take top 250
     const scored = filtered
       .map((a) => ({ article: a, score: scoreArticle(a) }))
       .sort((a, b) => b.score - a.score);
-    const limitedArticles = scored.slice(0, 200).map((s) => s.article);
+    const limitedArticles = scored.slice(0, 250).map((s) => s.article);
 
     if (limitedArticles.length < 5) {
       return new Response(JSON.stringify({ clusters: [], subspecialtyCounts }), {
