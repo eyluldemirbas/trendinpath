@@ -10,6 +10,7 @@ export interface TrendingTopic {
   source: "mesh" | "text" | "cluster";
   summary?: string;
   representativeTerms?: string[];
+  coherenceScore?: number;
 }
 
 interface ClusterResult {
@@ -18,20 +19,37 @@ interface ClusterResult {
   articleCount: number;
   pmids: string[];
   representativeTerms: string[];
+  coherenceScore: number;
 }
 
+export const SUBSPECIALTIES = [
+  { id: "all", label: "All Pathology" },
+  { id: "dermatopathology", label: "Dermatopathology" },
+  { id: "gastrointestinal", label: "Gastrointestinal Pathology" },
+  { id: "hematopathology", label: "Hematopathology" },
+  { id: "breast", label: "Breast Pathology" },
+  { id: "gynecologic", label: "Gynecologic Pathology" },
+  { id: "genitourinary", label: "Genitourinary Pathology" },
+  { id: "thoracic", label: "Thoracic Pathology" },
+  { id: "neuropathology", label: "Neuropathology" },
+  { id: "cytopathology", label: "Cytopathology" },
+  { id: "molecular", label: "Molecular Pathology" },
+] as const;
+
+export type SubspecialtyId = typeof SUBSPECIALTIES[number]["id"];
+
 /**
- * Send articles to the edge function for embedding-based clustering and AI labeling.
+ * Send articles to the edge function for TF-IDF clustering and AI labeling.
  */
 export async function detectTrends(
   articles: PubMedArticle[],
   topN = 10,
-  onProgress?: (msg: string) => void
-): Promise<TrendingTopic[]> {
+  onProgress?: (msg: string) => void,
+  subspecialty: SubspecialtyId = "all"
+): Promise<{ topics: TrendingTopic[]; subspecialtyCounts: Record<string, number> }> {
   onProgress?.("Sending articles for AI analysis…");
 
-  // Limit to 150 most recent articles
-  const limited = articles.slice(0, 150);
+  const limited = articles.slice(0, 200);
 
   const { data, error } = await supabase.functions.invoke("analyze-trends", {
     body: {
@@ -43,7 +61,9 @@ export async function detectTrends(
         pubDate: a.pubDate,
         meshTerms: a.meshTerms,
         keywords: a.keywords,
+        publicationTypes: a.publicationTypes,
       })),
+      subspecialty,
     },
   });
 
@@ -57,20 +77,21 @@ export async function detectTrends(
   }
 
   const clusters: ClusterResult[] = data?.clusters || [];
+  const subspecialtyCounts: Record<string, number> = data?.subspecialtyCounts || {};
 
   onProgress?.("Processing results…");
 
-  // Convert clusters to TrendingTopic format
   const topics: TrendingTopic[] = clusters.slice(0, topN).map((cluster, i) => ({
     phrase: cluster.label,
     frequency: cluster.articleCount,
     articleCount: cluster.articleCount,
     relatedPmids: cluster.pmids.slice(0, 10),
-    trendScore: clusters.length - i, // rank-based score
+    trendScore: clusters.length - i,
     source: "cluster" as const,
     summary: cluster.summary,
     representativeTerms: cluster.representativeTerms,
+    coherenceScore: cluster.coherenceScore,
   }));
 
-  return topics;
+  return { topics, subspecialtyCounts };
 }
