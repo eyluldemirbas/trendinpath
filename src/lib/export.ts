@@ -31,14 +31,13 @@ export function exportExcel(data: TopicWithArticles[], filename = "pathscan-repo
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "PathScan Report");
 
-  // Set column widths
   ws["!cols"] = [
-    { wch: 30 }, // Topic
-    { wch: 60 }, // Title
-    { wch: 35 }, // Journal
-    { wch: 10 }, // Year
-    { wch: 12 }, // PMID
-    { wch: 45 }, // URL
+    { wch: 30 },
+    { wch: 60 },
+    { wch: 35 },
+    { wch: 10 },
+    { wch: 12 },
+    { wch: 45 },
   ];
 
   XLSX.writeFile(wb, filename);
@@ -56,13 +55,13 @@ export function exportMarkdown(
   scanDate: Date,
   filename = "pathscan-report.md"
 ) {
-  let md = `# PathScan Weekly Pathology Trend Report\n\n`;
-  md += `**Generated:** ${scanDate.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}\n\n`;
+  let md = `# PathScan Monthly Pathology Trend Report\n\n`;
+  md += `**Generated:** ${scanDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}\n\n`;
   md += `---\n\n`;
   md += `## Top Trending Pathology Topics\n\n`;
 
   data.forEach((d, i) => {
-    md += `${i + 1}. **${d.topic.phrase}** (${d.topic.frequency} mentions across ${d.topic.articleCount} articles)\n`;
+    md += `${i + 1}. **${d.topic.phrase}** (${d.topic.articleCount} articles)\n`;
   });
 
   md += `\n---\n\n`;
@@ -70,7 +69,8 @@ export function exportMarkdown(
 
   for (const { topic, articles } of data) {
     md += `### ${topic.phrase}\n\n`;
-    md += `*Frequency: ${topic.frequency} | Articles: ${topic.articleCount}*\n\n`;
+    if (topic.summary) md += `*${topic.summary}*\n\n`;
+    md += `*Articles: ${topic.articleCount}*\n\n`;
     md += `| # | Title | Journal | Year | PMID |\n`;
     md += `|---|-------|---------|------|------|\n`;
     articles.forEach((a, i) => {

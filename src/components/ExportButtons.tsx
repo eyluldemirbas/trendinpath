@@ -10,33 +10,33 @@ interface ExportButtonsProps {
 
 export function ExportButtons({ data, scanDate }: ExportButtonsProps) {
   return (
-    <div className="flex flex-wrap gap-3">
+    <div className="flex flex-wrap gap-2">
       <Button
         variant="outline"
         size="sm"
         onClick={() => exportExcel(data)}
-        className="font-mono text-xs border-border text-muted-foreground hover:text-primary hover:border-primary/50"
+        className="text-xs"
       >
-        <FileSpreadsheet className="mr-2 h-4 w-4" />
-        Export Excel
+        <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5" />
+        Excel
       </Button>
       <Button
         variant="outline"
         size="sm"
         onClick={() => exportCSV(data)}
-        className="font-mono text-xs border-border text-muted-foreground hover:text-primary hover:border-primary/50"
+        className="text-xs"
       >
-        <FileText className="mr-2 h-4 w-4" />
-        Export CSV
+        <FileText className="mr-1.5 h-3.5 w-3.5" />
+        CSV
       </Button>
       <Button
         variant="outline"
         size="sm"
         onClick={() => exportMarkdown(data, scanDate)}
-        className="font-mono text-xs border-border text-muted-foreground hover:text-primary hover:border-primary/50"
+        className="text-xs"
       >
-        <FileDown className="mr-2 h-4 w-4" />
-        Export Markdown
+        <FileDown className="mr-1.5 h-3.5 w-3.5" />
+        Markdown
       </Button>
     </div>
   );

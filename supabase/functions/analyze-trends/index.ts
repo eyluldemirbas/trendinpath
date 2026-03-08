@@ -14,6 +14,7 @@ interface ArticleInput {
   pubDate: string;
   meshTerms: string[];
   keywords: string[];
+  publicationTypes?: string[];
 }
 
 interface ClusterResult {
@@ -24,10 +25,39 @@ interface ClusterResult {
   representativeTerms: string[];
 }
 
-// Generate embeddings using Lovable AI (Gemini) by asking the model to produce numeric vectors
-// We use a TF-IDF-like approach instead: build term vectors from article text for clustering
+// Filter low-signal papers
+function filterArticles(articles: ArticleInput[]): ArticleInput[] {
+  const excludedPubTypes = new Set([
+    "case reports", "editorial", "letter", "comment",
+    "case report", "editorials", "letters", "comments",
+  ]);
+
+  return articles.filter((a) => {
+    // Exclude by publication type
+    if (a.publicationTypes?.some((pt) => excludedPubTypes.has(pt.toLowerCase()))) {
+      return false;
+    }
+
+    // Exclude very short abstracts (<150 words)
+    const wordCount = (a.abstract || "").split(/\s+/).filter(Boolean).length;
+    if (wordCount < 150) return false;
+
+    return true;
+  });
+}
+
+// Score articles by signal quality — prioritize those with MeSH, keywords, full abstracts
+function scoreArticle(a: ArticleInput): number {
+  let score = 0;
+  if (a.meshTerms.length > 0) score += 2;
+  if (a.keywords.length > 0) score += 2;
+  const wordCount = (a.abstract || "").split(/\s+/).filter(Boolean).length;
+  if (wordCount > 300) score += 2;
+  else if (wordCount > 200) score += 1;
+  return score;
+}
+
 function buildTfIdfEmbeddings(articles: ArticleInput[]): { embeddings: number[][]; vocabulary: string[] } {
-  // Tokenize and build vocabulary
   const stopWords = new Set([
     "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with",
     "by", "from", "is", "was", "are", "were", "be", "been", "being", "have", "has", "had",
@@ -52,12 +82,11 @@ function buildTfIdfEmbeddings(articles: ArticleInput[]): { embeddings: number[][
       .filter(w => w.length > 2 && !stopWords.has(w));
   };
 
-  // Document frequency map
   const dfMap = new Map<string, number>();
   const docTokens: string[][] = [];
 
   for (const article of articles) {
-    const text = `${article.title} ${article.abstract} ${article.meshTerms.join(" ")} ${article.keywords.join(" ")}`;
+    const text = `${article.title} ${article.title} ${article.abstract} ${article.meshTerms.join(" ")} ${article.meshTerms.join(" ")} ${article.keywords.join(" ")} ${article.keywords.join(" ")}`;
     const tokens = tokenize(text);
     docTokens.push(tokens);
     const unique = new Set(tokens);
@@ -66,19 +95,17 @@ function buildTfIdfEmbeddings(articles: ArticleInput[]): { embeddings: number[][
     }
   }
 
-  // Select vocabulary: terms appearing in 2+ docs but not more than 80% of docs
   const n = articles.length;
   const maxDf = Math.max(2, Math.floor(n * 0.8));
   const vocabulary = [...dfMap.entries()]
     .filter(([, df]) => df >= 2 && df <= maxDf)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 500) // limit dimensions
+    .slice(0, 500)
     .map(([term]) => term);
 
   const vocabIndex = new Map(vocabulary.map((v, i) => [v, i]));
   const dim = vocabulary.length;
 
-  // Build TF-IDF vectors
   const embeddings: number[][] = [];
   for (const tokens of docTokens) {
     const vec = new Array(dim).fill(0);
@@ -93,7 +120,6 @@ function buildTfIdfEmbeddings(articles: ArticleInput[]): { embeddings: number[][
         vec[idx] = (1 + Math.log(tf)) * idf;
       }
     }
-    // L2 normalize
     let norm = 0;
     for (const v of vec) norm += v * v;
     norm = Math.sqrt(norm) + 1e-10;
@@ -104,7 +130,6 @@ function buildTfIdfEmbeddings(articles: ArticleInput[]): { embeddings: number[][
   return { embeddings, vocabulary };
 }
 
-// Cosine similarity between two vectors
 function cosineSimilarity(a: number[], b: number[]): number {
   let dot = 0, normA = 0, normB = 0;
   for (let i = 0; i < a.length; i++) {
@@ -115,12 +140,10 @@ function cosineSimilarity(a: number[], b: number[]): number {
   return dot / (Math.sqrt(normA) * Math.sqrt(normB) + 1e-10);
 }
 
-// KMeans clustering
 function kMeansClustering(embeddings: number[][], k: number, maxIter = 30): number[] {
   const n = embeddings.length;
   const dim = embeddings[0].length;
 
-  // KMeans++ initialization
   const centroids: number[][] = [];
   const usedIndices = new Set<number>();
   let idx = Math.floor(Math.random() * n);
@@ -167,27 +190,62 @@ function kMeansClustering(embeddings: number[][], k: number, maxIter = 30): numb
   return assignments;
 }
 
-// Use Lovable AI to generate human-readable topic labels
+// Extract top keywords from a cluster for label generation
+function extractClusterKeywords(articles: ArticleInput[], vocabulary: string[]): string[] {
+  const freqMap = new Map<string, number>();
+
+  for (const a of articles) {
+    // Weight MeSH terms and keywords higher
+    for (const term of a.meshTerms) {
+      const key = term.toLowerCase();
+      freqMap.set(key, (freqMap.get(key) || 0) + 3);
+    }
+    for (const kw of a.keywords) {
+      const key = kw.toLowerCase();
+      freqMap.set(key, (freqMap.get(key) || 0) + 2);
+    }
+    // Title words
+    const titleWords = a.title.toLowerCase().replace(/[^a-z0-9\s-]/g, " ").split(/\s+/).filter(w => w.length > 3);
+    for (const w of titleWords) {
+      freqMap.set(w, (freqMap.get(w) || 0) + 1);
+    }
+  }
+
+  // Filter out generic pathology terms
+  const genericTerms = new Set([
+    "humans", "male", "female", "adult", "middle aged", "aged",
+    "retrospective studies", "prognosis", "diagnosis", "pathology",
+    "immunohistochemistry", "neoplasms", "treatment outcome",
+  ]);
+
+  return [...freqMap.entries()]
+    .filter(([term]) => !genericTerms.has(term))
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 15)
+    .map(([term]) => term);
+}
+
 async function generateTopicLabels(
   clusters: Map<number, ArticleInput[]>,
+  vocabulary: string[],
   lovableApiKey: string
 ): Promise<Map<number, { label: string; summary: string }>> {
   const results = new Map<number, { label: string; summary: string }>();
 
   for (const [clusterId, articles] of clusters) {
-    const titles = articles.map((a) => `- ${a.title}`).join("\n");
-    const meshTerms = [...new Set(articles.flatMap((a) => a.meshTerms))].slice(0, 20);
-    const keywords = [...new Set(articles.flatMap((a) => a.keywords))].slice(0, 20);
+    const topKeywords = extractClusterKeywords(articles, vocabulary);
+    const titles = articles.slice(0, 8).map((a) => `- ${a.title}`).join("\n");
 
-    const prompt = `You are a pathology research expert. Below is a cluster of ${articles.length} recent pathology research papers. Generate:
-1. A concise topic label (3-7 words) that captures the specific research theme
-2. A one-sentence summary of the research direction
+    const prompt = `You are a pathology research expert. Below is a cluster of ${articles.length} recent pathology research papers with their most frequent keywords.
 
-Papers:
+Top keywords (by frequency): ${topKeywords.join(", ")}
+
+Sample paper titles:
 ${titles}
 
-MeSH terms: ${meshTerms.join(", ")}
-Keywords: ${keywords.join(", ")}
+Based on the keywords above, generate:
+1. A concise topic label (3-5 words) using the most specific and meaningful keywords. Do NOT use broad generic phrases. The label should reflect the actual research focus.
+2. A one-sentence summary of the research direction.
 
 Respond in exactly this format:
 LABEL: <topic label>
@@ -210,7 +268,7 @@ SUMMARY: <one sentence summary>`;
         const errText = await res.text();
         console.error(`AI labeling error [${res.status}]: ${errText}`);
         results.set(clusterId, {
-          label: meshTerms.slice(0, 3).join(", ") || `Cluster ${clusterId + 1}`,
+          label: topKeywords.slice(0, 3).join(" / ") || `Cluster ${clusterId + 1}`,
           summary: `${articles.length} related papers`,
         });
         continue;
@@ -222,13 +280,13 @@ SUMMARY: <one sentence summary>`;
       const summaryMatch = content.match(/SUMMARY:\s*(.+)/i);
 
       results.set(clusterId, {
-        label: labelMatch?.[1]?.trim() || meshTerms.slice(0, 3).join(", ") || `Cluster ${clusterId + 1}`,
+        label: labelMatch?.[1]?.trim() || topKeywords.slice(0, 3).join(" / ") || `Cluster ${clusterId + 1}`,
         summary: summaryMatch?.[1]?.trim() || `${articles.length} related papers`,
       });
     } catch (e) {
       console.error("Label generation error:", e);
       results.set(clusterId, {
-        label: meshTerms.slice(0, 3).join(", ") || `Cluster ${clusterId + 1}`,
+        label: topKeywords.slice(0, 3).join(" / ") || `Cluster ${clusterId + 1}`,
         summary: `${articles.length} related papers`,
       });
     }
@@ -258,20 +316,35 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const limitedArticles = articles.slice(0, 150);
+    // Step 1: Filter low-signal papers
+    const filtered = filterArticles(articles);
+    console.log(`Filtered ${articles.length} → ${filtered.length} high-signal articles`);
+
+    // Step 2: Sort by quality score, take top 200
+    const scored = filtered
+      .map((a) => ({ article: a, score: scoreArticle(a) }))
+      .sort((a, b) => b.score - a.score);
+    const limitedArticles = scored.slice(0, 200).map((s) => s.article);
+
+    if (limitedArticles.length < 5) {
+      return new Response(JSON.stringify({ clusters: [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     console.log(`Building TF-IDF embeddings for ${limitedArticles.length} articles...`);
 
-    // Step 1: Build TF-IDF embeddings (no external API needed)
-    const { embeddings } = buildTfIdfEmbeddings(limitedArticles);
+    // Step 3: Build TF-IDF embeddings
+    const { embeddings, vocabulary } = buildTfIdfEmbeddings(limitedArticles);
 
-    // Step 2: Determine K
-    const k = Math.min(Math.max(Math.round(limitedArticles.length / 10), 5), 12);
+    // Step 4: Determine K
+    const k = Math.min(Math.max(Math.round(limitedArticles.length / 12), 5), 15);
     console.log(`Clustering into ${k} groups...`);
 
-    // Step 3: KMeans clustering
+    // Step 5: KMeans clustering
     const assignments = kMeansClustering(embeddings, k);
 
-    // Step 4: Group articles by cluster
+    // Step 6: Group articles by cluster
     const clusterMap = new Map<number, ArticleInput[]>();
     for (let i = 0; i < assignments.length; i++) {
       const clusterId = assignments[i];
@@ -287,20 +360,20 @@ serve(async (req) => {
 
     console.log(`Found ${validClusters.size} valid clusters, generating labels...`);
 
-    // Step 5: Generate labels using Lovable AI
-    const labels = await generateTopicLabels(validClusters, LOVABLE_API_KEY);
+    // Step 7: Generate keyword-based labels using Lovable AI
+    const labels = await generateTopicLabels(validClusters, vocabulary, LOVABLE_API_KEY);
 
-    // Step 6: Build results
+    // Step 8: Build results
     const results: ClusterResult[] = [];
     for (const [clusterId, arts] of validClusters) {
       const labelData = labels.get(clusterId);
-      const allMesh = [...new Set(arts.flatMap((a) => a.meshTerms))];
+      const topKeywords = extractClusterKeywords(arts, vocabulary);
       results.push({
         label: labelData?.label || `Cluster ${clusterId + 1}`,
         summary: labelData?.summary || "",
         articleCount: arts.length,
         pmids: arts.map((a) => a.pmid),
-        representativeTerms: allMesh.slice(0, 10),
+        representativeTerms: topKeywords.slice(0, 10),
       });
     }
 

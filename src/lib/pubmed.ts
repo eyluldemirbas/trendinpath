@@ -27,6 +27,7 @@ export interface PubMedArticle {
   pubDate: string;
   keywords: string[];
   meshTerms: string[];
+  publicationTypes: string[];
 }
 
 export interface ScanProgress {
@@ -43,10 +44,10 @@ function buildJournalQuery(journals: string[]): string {
 
 function getDateRange(): { minDate: string; maxDate: string } {
   const now = new Date();
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   const fmt = (d: Date) =>
     `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
-  return { minDate: fmt(weekAgo), maxDate: fmt(now) };
+  return { minDate: fmt(monthAgo), maxDate: fmt(now) };
 }
 
 export async function searchPubMed(
@@ -117,8 +118,9 @@ function parseArticleFromXML(articleXml: string): PubMedArticle {
 
   const keywords = parseXMLTexts(articleXml, "Keyword");
   const meshTerms = parseXMLTexts(articleXml, "DescriptorName");
+  const publicationTypes = parseXMLTexts(articleXml, "PublicationType");
 
-  return { pmid, title, abstract, journal, pubDate, keywords, meshTerms };
+  return { pmid, title, abstract, journal, pubDate, keywords, meshTerms, publicationTypes };
 }
 
 export async function fetchArticles(pmids: string[]): Promise<PubMedArticle[]> {

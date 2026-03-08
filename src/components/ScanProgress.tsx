@@ -32,10 +32,10 @@ export function ScanProgressIndicator({ progress }: ScanProgressProps) {
       className="w-full max-w-xl mx-auto space-y-3"
     >
       <div className="flex justify-between text-sm">
-        <span className="font-mono text-muted-foreground">
+        <span className="text-muted-foreground">
           {phaseLabels[progress.phase]}
         </span>
-        <span className="font-mono text-primary">
+        <span className="font-medium text-primary">
           {progress.articlesFound} articles
         </span>
       </div>
@@ -47,11 +47,10 @@ export function ScanProgressIndicator({ progress }: ScanProgressProps) {
           animate={{ width: `${pct}%` }}
           transition={{ duration: 0.5, ease: "easeOut" }}
         />
-        <div className="absolute inset-0 bg-primary/20 animate-pulse-glow rounded-full" />
       </div>
 
-      <p className="text-xs text-dim font-mono text-center">
-        Querying {progress.totalJournals > 1 ? `${progress.journalIndex}/${progress.totalJournals} journals` : "all pathology journals"}
+      <p className="text-xs text-muted-foreground text-center">
+        Querying {progress.totalJournals > 1 ? `${progress.journalIndex}/${progress.totalJournals} journals` : "all pathology journals"} · 30-day window
       </p>
     </motion.div>
   );
