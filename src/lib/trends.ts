@@ -23,6 +23,9 @@ interface ClusterResult {
   pmids: string[];
   representativeTerms: string[];
   coherenceScore: number;
+  recentCount?: number;
+  baselineCount?: number;
+  trendDirection?: "rising" | "stable" | "declining";
 }
 
 export const SUBSPECIALTIES = [
