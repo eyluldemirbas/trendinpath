@@ -171,6 +171,12 @@ export default function Index() {
 
               <ScanButton isScanning={false} onScan={handleScan} />
 
+              {rateLimitMsg && (
+                <p className="text-sm text-destructive font-medium animate-pulse">
+                  {rateLimitMsg}
+                </p>
+              )}
+
               <div className="flex items-center gap-6 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <BookOpen className="w-3.5 h-3.5" />
