@@ -273,6 +273,20 @@ export default function Index() {
           )}
         </AnimatePresence>
       </main>
+
+      <footer className="border-t border-border py-8 mt-16">
+        <div className="container max-w-5xl mx-auto px-4 text-center space-y-1 text-xs text-muted-foreground">
+          <p className="font-semibold text-foreground/70">TrendInPath</p>
+          <p>Quarterly Pathology Literature Trends</p>
+          <p className="pt-2">Built using PubMed data.</p>
+          <p>
+            Feedback or suggestions:{" "}
+            <a href="mailto:oylul.d@gmail.com" className="underline hover:text-foreground transition-colors">
+              oylul.d@gmail.com
+            </a>
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
