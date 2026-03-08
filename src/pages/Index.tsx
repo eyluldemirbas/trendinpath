@@ -89,8 +89,18 @@ export default function Index() {
     }
   }, [cachedArticles, runAnalysis]);
 
-  const monthYear = scanDate
-    ? scanDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+  const quarterLabel = scanDate
+    ? (() => {
+        const end = scanDate;
+        const start = new Date(end.getTime() - 90 * 24 * 60 * 60 * 1000);
+        const fmt = (d: Date) => d.toLocaleDateString("en-US", { month: "long" });
+        const startMonth = fmt(start);
+        const endMonth = fmt(end);
+        const year = end.getFullYear();
+        return startMonth === endMonth
+          ? `${endMonth} ${year}`
+          : `${startMonth}–${endMonth} ${year}`;
+      })()
     : "";
 
   return (
