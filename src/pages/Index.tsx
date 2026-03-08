@@ -112,10 +112,10 @@ export default function Index() {
             <Search className="w-5 h-5 text-primary" />
             <div>
               <h1 className="font-display font-bold text-lg text-foreground leading-none">
-                PathScan
+                TrendInPath
               </h1>
               <p className="text-xs text-muted-foreground">
-                Monthly Pathology Trend Scanner
+                Quarterly Pathology Trend Scanner
               </p>
             </div>
           </div>
