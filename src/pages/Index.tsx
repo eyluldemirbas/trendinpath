@@ -59,10 +59,26 @@ export default function Index() {
     setProgress((prev) => prev ? { ...prev, phase: "done" } : null);
   }, []);
 
+  const checkRateLimit = useCallback((): boolean => {
+    const now = Date.now();
+    const oneMinuteAgo = now - 60_000;
+    scanTimestamps.current = scanTimestamps.current.filter((t) => t > oneMinuteAgo);
+    if (scanTimestamps.current.length >= 2) {
+      setRateLimitMsg("Please wait before running another scan.");
+      setTimeout(() => setRateLimitMsg(null), 5000);
+      return false;
+    }
+    scanTimestamps.current.push(now);
+    return true;
+  }, []);
+
   const handleScan = useCallback(async () => {
+    if (!checkRateLimit()) return;
+
     setIsScanning(true);
     setResults(null);
     setProgress(null);
+    setRateLimitMsg(null);
 
     try {
       const articles = await scanJournals((p) => setProgress(p));
@@ -74,7 +90,7 @@ export default function Index() {
     } finally {
       setIsScanning(false);
     }
-  }, [subspecialty, runAnalysis]);
+  }, [subspecialty, runAnalysis, checkRateLimit]);
 
   const handleSubspecialtyChange = useCallback(async (spec: SubspecialtyId) => {
     setSubspecialty(spec);
