@@ -138,9 +138,12 @@ export default function Index() {
             </div>
           </div>
 
-          {results && scanDate && (
-            <ExportButtons data={results} scanDate={scanDate} />
-          )}
+          <div className="flex items-center gap-2">
+            {results && scanDate && (
+              <ExportButtons data={results} scanDate={scanDate} />
+            )}
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
