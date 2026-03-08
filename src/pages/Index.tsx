@@ -285,6 +285,7 @@ export default function Index() {
               oylul.d@gmail.com
             </a>
           </p>
+          <p className="pt-3 italic">TrendInPath is an experimental literature analysis tool and may not capture all relevant research trends.</p>
         </div>
       </footer>
     </div>
