@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { TrendingUp, ExternalLink, BarChart3 } from "lucide-react";
+import { TrendingUp, TrendingDown, ArrowRight, ExternalLink, BarChart3 } from "lucide-react";
 import type { PubMedArticle } from "@/lib/pubmed";
 import { getPubMedUrl } from "@/lib/pubmed";
 import type { TrendingTopic } from "@/lib/trends";
@@ -8,6 +8,32 @@ interface TrendCardProps {
   topic: TrendingTopic;
   articles: PubMedArticle[];
   index: number;
+}
+
+function TrendIndicator({ direction, recentCount, baselineCount }: {
+  direction?: "rising" | "stable" | "declining";
+  recentCount?: number;
+  baselineCount?: number;
+}) {
+  if (!direction) return null;
+
+  const config = {
+    rising: { icon: TrendingUp, label: "Rising", className: "text-emerald-600 bg-emerald-50", symbol: "↑" },
+    stable: { icon: ArrowRight, label: "Stable", className: "text-amber-600 bg-amber-50", symbol: "→" },
+    declining: { icon: TrendingDown, label: "Declining", className: "text-red-500 bg-red-50", symbol: "↓" },
+  };
+
+  const { icon: Icon, label, className } = config[direction];
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${className}`}
+      title={`Recent 30d: ${recentCount ?? "?"} · Baseline 60d: ${baselineCount ?? "?"}`}
+    >
+      <Icon className="w-3 h-3" />
+      {label}
+    </span>
+  );
 }
 
 export function TrendCard({ topic, articles, index }: TrendCardProps) {
@@ -26,9 +52,16 @@ export function TrendCard({ topic, articles, index }: TrendCardProps) {
               {index + 1}
             </div>
             <div>
-              <h3 className="font-display font-bold text-lg text-foreground">
-                {topic.phrase}
-              </h3>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-display font-bold text-lg text-foreground">
+                  {topic.phrase}
+                </h3>
+                <TrendIndicator
+                  direction={topic.trendDirection}
+                  recentCount={topic.recentCount}
+                  baselineCount={topic.baselineCount}
+                />
+              </div>
               {topic.summary && (
                 <p className="text-sm text-muted-foreground mt-1">{topic.summary}</p>
               )}
@@ -37,6 +70,11 @@ export function TrendCard({ topic, articles, index }: TrendCardProps) {
                   <TrendingUp className="w-3 h-3 text-primary" />
                   {topic.articleCount} papers
                 </span>
+                {topic.recentCount !== undefined && (
+                  <span className="text-muted-foreground">
+                    {topic.recentCount} recent · {topic.baselineCount} baseline
+                  </span>
+                )}
                 {topic.coherenceScore !== undefined && (
                   <span className="flex items-center gap-1" title="Cluster coherence score">
                     <BarChart3 className="w-3 h-3 text-primary" />

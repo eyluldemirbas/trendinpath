@@ -55,7 +55,7 @@ export function exportMarkdown(
   scanDate: Date,
   filename = "pathscan-report.md"
 ) {
-  let md = `# PathScan Monthly Pathology Trend Report\n\n`;
+  let md = `# PathScan Quarterly Pathology Trend Report\n\n`;
   md += `**Generated:** ${scanDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}\n\n`;
   md += `---\n\n`;
   md += `## Top Trending Pathology Topics\n\n`;

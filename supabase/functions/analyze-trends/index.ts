@@ -446,11 +446,38 @@ serve(async (req) => {
     // Step 8: Generate keyword-based labels using Lovable AI
     const labels = await generateTopicLabels(validClusters, vocabulary, LOVABLE_API_KEY);
 
-    // Step 9: Build results
+    // Step 9: Compute trend comparison (recent 30d vs baseline 60d)
+    const now = Date.now();
+    const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+
+    function parseArticleDate(pubDate: string): number {
+      // pubDate is like "2026 Mar" or "2026 Feb"
+      const d = new Date(pubDate);
+      return isNaN(d.getTime()) ? 0 : d.getTime();
+    }
+
+    function computeTrendDirection(recentCount: number, baselineCount: number): "rising" | "stable" | "declining" {
+      if (baselineCount === 0) return recentCount > 0 ? "rising" : "stable";
+      const ratio = recentCount / baselineCount;
+      if (ratio > 1.3) return "rising";
+      if (ratio < 0.8) return "declining";
+      return "stable";
+    }
+
+    // Step 10: Build results
     const results: ClusterResult[] = [];
     for (const [clusterId, arts] of validClusters) {
       const labelData = labels.get(clusterId);
       const topKeywords = extractClusterKeywords(arts);
+
+      let recentCount = 0;
+      let baselineCount = 0;
+      for (const a of arts) {
+        const ts = parseArticleDate(a.pubDate);
+        if (ts >= thirtyDaysAgo) recentCount++;
+        else baselineCount++;
+      }
+
       results.push({
         label: labelData?.label || `Cluster ${clusterId + 1}`,
         summary: labelData?.summary || "",
@@ -458,6 +485,9 @@ serve(async (req) => {
         pmids: arts.map((a) => a.pmid),
         representativeTerms: topKeywords.slice(0, 10),
         coherenceScore: coherenceScores.get(clusterId) || 0,
+        recentCount,
+        baselineCount,
+        trendDirection: computeTrendDirection(recentCount, baselineCount),
       });
     }
 
