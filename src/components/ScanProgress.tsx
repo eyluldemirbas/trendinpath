@@ -50,7 +50,7 @@ export function ScanProgressIndicator({ progress }: ScanProgressProps) {
       </div>
 
       <p className="text-xs text-muted-foreground text-center">
-        Querying {progress.totalJournals > 1 ? `${progress.journalIndex}/${progress.totalJournals} journals` : "all pathology journals"} · 30-day window
+        Querying {progress.totalJournals > 1 ? `${progress.journalIndex}/${progress.totalJournals} journals` : "all pathology journals"} · 90-day window
       </p>
     </motion.div>
   );
