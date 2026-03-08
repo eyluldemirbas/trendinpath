@@ -26,16 +26,17 @@ export function TrendCard({ topic, articles, index }: TrendCardProps) {
               {index + 1}
             </div>
             <div>
-              <h3 className="font-display font-semibold text-lg text-foreground capitalize">
+              <h3 className="font-display font-semibold text-lg text-foreground">
                 {topic.phrase}
               </h3>
+              {topic.summary && (
+                <p className="text-sm text-muted-foreground mt-1">{topic.summary}</p>
+              )}
               <div className="flex items-center gap-3 mt-1 text-xs font-mono text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <TrendingUp className="w-3 h-3 text-primary" />
-                  {topic.frequency} mentions
+                  {topic.articleCount} papers
                 </span>
-                <span>•</span>
-                <span>{topic.articleCount} articles</span>
               </div>
             </div>
           </div>
