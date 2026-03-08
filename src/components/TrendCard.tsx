@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { TrendingUp, ExternalLink } from "lucide-react";
+import { TrendingUp, ExternalLink, BarChart3 } from "lucide-react";
 import type { PubMedArticle } from "@/lib/pubmed";
 import { getPubMedUrl } from "@/lib/pubmed";
 import type { TrendingTopic } from "@/lib/trends";
@@ -37,6 +37,12 @@ export function TrendCard({ topic, articles, index }: TrendCardProps) {
                   <TrendingUp className="w-3 h-3 text-primary" />
                   {topic.articleCount} papers
                 </span>
+                {topic.coherenceScore !== undefined && (
+                  <span className="flex items-center gap-1" title="Cluster coherence score">
+                    <BarChart3 className="w-3 h-3 text-primary" />
+                    {(topic.coherenceScore * 100).toFixed(0)}% coherence
+                  </span>
+                )}
                 {topic.representativeTerms && topic.representativeTerms.length > 0 && (
                   <span className="text-muted-foreground">
                     {topic.representativeTerms.slice(0, 4).join(" · ")}

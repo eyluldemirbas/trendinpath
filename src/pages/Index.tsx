@@ -5,13 +5,14 @@ import { ScanButton } from "@/components/ScanButton";
 import { ScanProgressIndicator } from "@/components/ScanProgress";
 import { TrendCard } from "@/components/TrendCard";
 import { ExportButtons } from "@/components/ExportButtons";
+import { SubspecialtyFilter } from "@/components/SubspecialtyFilter";
 import {
   scanJournals,
   type PubMedArticle,
   type ScanProgress,
   PATHOLOGY_JOURNALS,
 } from "@/lib/pubmed";
-import { detectTrends } from "@/lib/trends";
+import { detectTrends, type SubspecialtyId } from "@/lib/trends";
 import type { TopicWithArticles } from "@/lib/export";
 
 export default function Index() {
@@ -20,6 +21,41 @@ export default function Index() {
   const [results, setResults] = useState<TopicWithArticles[] | null>(null);
   const [scanDate, setScanDate] = useState<Date | null>(null);
   const [totalArticles, setTotalArticles] = useState(0);
+  const [subspecialty, setSubspecialty] = useState<SubspecialtyId>("all");
+  const [subspecialtyCounts, setSubspecialtyCounts] = useState<Record<string, number>>({});
+  const [cachedArticles, setCachedArticles] = useState<PubMedArticle[] | null>(null);
+
+  const runAnalysis = useCallback(async (articles: PubMedArticle[], spec: SubspecialtyId) => {
+    setProgress((prev) => prev ? { ...prev, phase: "analyzing" } : {
+      currentJournal: "Analyzing",
+      journalIndex: 0,
+      totalJournals: 1,
+      articlesFound: articles.length,
+      phase: "analyzing" as const,
+    });
+
+    const { topics: trends, subspecialtyCounts: counts } = await detectTrends(
+      articles, 10,
+      (msg) => setProgress((prev) => prev ? { ...prev, currentJournal: msg } : null),
+      spec
+    );
+
+    setSubspecialtyCounts(counts);
+
+    setProgress((prev) => prev ? { ...prev, phase: "expanding" } : null);
+    const topicData: TopicWithArticles[] = [];
+
+    for (const topic of trends) {
+      const clusterArticles = articles.filter((a) =>
+        topic.relatedPmids.includes(a.pmid)
+      );
+      topicData.push({ topic, articles: clusterArticles.slice(0, 10) });
+    }
+
+    setResults(topicData);
+    setScanDate(new Date());
+    setProgress((prev) => prev ? { ...prev, phase: "done" } : null);
+  }, []);
 
   const handleScan = useCallback(async () => {
     setIsScanning(true);
@@ -29,31 +65,29 @@ export default function Index() {
     try {
       const articles = await scanJournals((p) => setProgress(p));
       setTotalArticles(articles.length);
-
-      setProgress((prev) => prev ? { ...prev, phase: "analyzing" } : null);
-      const trends = await detectTrends(articles, 10, (msg) =>
-        setProgress((prev) => prev ? { ...prev, currentJournal: msg } : null)
-      );
-
-      setProgress((prev) => prev ? { ...prev, phase: "expanding" } : null);
-      const topicData: TopicWithArticles[] = [];
-
-      for (const topic of trends) {
-        const clusterArticles = articles.filter((a) =>
-          topic.relatedPmids.includes(a.pmid)
-        );
-        topicData.push({ topic, articles: clusterArticles.slice(0, 10) });
-      }
-
-      setResults(topicData);
-      setScanDate(new Date());
-      setProgress((prev) => prev ? { ...prev, phase: "done" } : null);
+      setCachedArticles(articles);
+      await runAnalysis(articles, subspecialty);
     } catch (error) {
       console.error("Scan failed:", error);
     } finally {
       setIsScanning(false);
     }
-  }, []);
+  }, [subspecialty, runAnalysis]);
+
+  const handleSubspecialtyChange = useCallback(async (spec: SubspecialtyId) => {
+    setSubspecialty(spec);
+    if (!cachedArticles) return;
+
+    setIsScanning(true);
+    setResults(null);
+    try {
+      await runAnalysis(cachedArticles, spec);
+    } catch (error) {
+      console.error("Re-analysis failed:", error);
+    } finally {
+      setIsScanning(false);
+    }
+  }, [cachedArticles, runAnalysis]);
 
   const monthYear = scanDate
     ? scanDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })
@@ -140,7 +174,7 @@ export default function Index() {
               key="results"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="space-y-8"
+              className="space-y-6"
             >
               {/* Summary bar */}
               <div className="flex flex-wrap items-center justify-between gap-4 p-5 bg-card border border-border rounded-lg">
@@ -165,6 +199,14 @@ export default function Index() {
                 <ScanButton isScanning={isScanning} onScan={handleScan} />
               </div>
 
+              {/* Subspecialty filter */}
+              <SubspecialtyFilter
+                selected={subspecialty}
+                onSelect={handleSubspecialtyChange}
+                counts={subspecialtyCounts}
+                disabled={isScanning}
+              />
+
               {/* Topic cards */}
               <div className="space-y-5">
                 {results.map((r, i) => (
@@ -180,7 +222,7 @@ export default function Index() {
               {results.length === 0 && (
                 <div className="text-center py-20 text-muted-foreground">
                   <p className="font-display text-lg">No trending topics detected</p>
-                  <p className="text-sm mt-2">Try scanning again or expanding the date range.</p>
+                  <p className="text-sm mt-2">Try a different subspecialty or scan again.</p>
                 </div>
               )}
             </motion.div>
