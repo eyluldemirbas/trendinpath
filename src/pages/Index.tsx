@@ -135,9 +135,9 @@ export default function Index() {
                   Pathology Literature Scanner
                 </h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Scan {PATHOLOGY_JOURNALS.length} pathology journals for publications
-                  from the last 30 days. Detect trending research topics and generate
-                  a structured monthly report.
+                Scan {PATHOLOGY_JOURNALS.length} pathology journals for publications
+                  from the last 90 days. Detect trending research topics, compare recent
+                  vs baseline activity, and generate a quarterly trend report.
                 </p>
               </div>
 
