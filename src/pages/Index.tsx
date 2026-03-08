@@ -89,8 +89,18 @@ export default function Index() {
     }
   }, [cachedArticles, runAnalysis]);
 
-  const monthYear = scanDate
-    ? scanDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+  const quarterLabel = scanDate
+    ? (() => {
+        const end = scanDate;
+        const start = new Date(end.getTime() - 90 * 24 * 60 * 60 * 1000);
+        const fmt = (d: Date) => d.toLocaleDateString("en-US", { month: "long" });
+        const startMonth = fmt(start);
+        const endMonth = fmt(end);
+        const year = end.getFullYear();
+        return startMonth === endMonth
+          ? `${endMonth} ${year}`
+          : `${startMonth}–${endMonth} ${year}`;
+      })()
     : "";
 
   return (
@@ -135,9 +145,9 @@ export default function Index() {
                   Pathology Literature Scanner
                 </h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Scan {PATHOLOGY_JOURNALS.length} pathology journals for publications
-                  from the last 30 days. Detect trending research topics and generate
-                  a structured monthly report.
+                Scan {PATHOLOGY_JOURNALS.length} pathology journals for publications
+                  from the last 90 days. Detect trending research topics, compare recent
+                  vs baseline activity, and generate a quarterly trend report.
                 </p>
               </div>
 
@@ -150,7 +160,7 @@ export default function Index() {
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5" />
-                  30-day window
+                  90-day window
                 </span>
               </div>
             </motion.div>
@@ -180,10 +190,10 @@ export default function Index() {
               <div className="flex flex-wrap items-center justify-between gap-4 p-5 bg-card border border-border rounded-lg">
                 <div className="space-y-1">
                   <h2 className="font-display font-bold text-xl text-foreground">
-                    Monthly Pathology Trend Report
+                    Quarterly Pathology Trend Report
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    {monthYear}
+                    {quarterLabel}
                   </p>
                 </div>
                 <div className="flex items-center gap-8 text-sm">
