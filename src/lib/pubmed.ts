@@ -44,10 +44,10 @@ function buildJournalQuery(journals: string[]): string {
 
 function getDateRange(): { minDate: string; maxDate: string } {
   const now = new Date();
-  const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const threeMonthsAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
   const fmt = (d: Date) =>
     `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
-  return { minDate: fmt(monthAgo), maxDate: fmt(now) };
+  return { minDate: fmt(threeMonthsAgo), maxDate: fmt(now) };
 }
 
 export async function searchPubMed(
