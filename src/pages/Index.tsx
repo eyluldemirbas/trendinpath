@@ -1,19 +1,17 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Radar, BookOpen, Zap } from "lucide-react";
+import { Search, BookOpen, Calendar } from "lucide-react";
 import { ScanButton } from "@/components/ScanButton";
 import { ScanProgressIndicator } from "@/components/ScanProgress";
 import { TrendCard } from "@/components/TrendCard";
 import { ExportButtons } from "@/components/ExportButtons";
 import {
   scanJournals,
-  fetchArticles,
-  searchPubMedNoDate,
   type PubMedArticle,
   type ScanProgress,
   PATHOLOGY_JOURNALS,
 } from "@/lib/pubmed";
-import { detectTrends, type TrendingTopic } from "@/lib/trends";
+import { detectTrends } from "@/lib/trends";
 import type { TopicWithArticles } from "@/lib/export";
 
 export default function Index() {
@@ -29,22 +27,18 @@ export default function Index() {
     setProgress(null);
 
     try {
-      // Phase 1: Scan journals
       const articles = await scanJournals((p) => setProgress(p));
       setTotalArticles(articles.length);
 
-      // Phase 2: Detect trends via AI clustering
       setProgress((prev) => prev ? { ...prev, phase: "analyzing" } : null);
       const trends = await detectTrends(articles, 10, (msg) =>
         setProgress((prev) => prev ? { ...prev, currentJournal: msg } : null)
       );
 
-      // Phase 3: Match articles to each topic cluster
       setProgress((prev) => prev ? { ...prev, phase: "expanding" } : null);
       const topicData: TopicWithArticles[] = [];
 
       for (const topic of trends) {
-        // Get articles from the initial scan that match the cluster PMIDs
         const clusterArticles = articles.filter((a) =>
           topic.relatedPmids.includes(a.pmid)
         );
@@ -60,21 +54,24 @@ export default function Index() {
       setIsScanning(false);
     }
   }, []);
+
+  const monthYear = scanDate
+    ? scanDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+    : "";
+
   return (
-    <div className="min-h-screen bg-background grid-pattern">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container max-w-6xl mx-auto flex items-center justify-between h-16 px-4">
+      <header className="border-b border-border bg-card sticky top-0 z-50">
+        <div className="container max-w-5xl mx-auto flex items-center justify-between h-16 px-4">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 glow-primary">
-              <Radar className="w-5 h-5 text-primary" />
-            </div>
+            <Search className="w-5 h-5 text-primary" />
             <div>
               <h1 className="font-display font-bold text-lg text-foreground leading-none">
                 PathScan
               </h1>
-              <p className="text-xs text-muted-foreground font-mono">
-                Weekly Pathology Trend Scanner
+              <p className="text-xs text-muted-foreground">
+                Monthly Pathology Trend Scanner
               </p>
             </div>
           </div>
@@ -85,45 +82,41 @@ export default function Index() {
         </div>
       </header>
 
-      <main className="container max-w-6xl mx-auto px-4 py-8">
+      <main className="container max-w-5xl mx-auto px-4 py-10">
         <AnimatePresence mode="wait">
           {!results && !isScanning && (
             <motion.div
               key="hero"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-8"
+              exit={{ opacity: 0, y: -10 }}
+              className="flex flex-col items-center justify-center min-h-[55vh] text-center space-y-8"
             >
-              <motion.div
-                animate={{ rotate: [0, 360] }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                className="w-24 h-24 rounded-full border border-primary/30 flex items-center justify-center glow-primary"
-              >
-                <Radar className="w-12 h-12 text-primary" />
-              </motion.div>
+              <div className="w-16 h-16 rounded-full bg-accent flex items-center justify-center">
+                <Search className="w-7 h-7 text-primary" />
+              </div>
 
               <div className="space-y-3 max-w-lg">
-                <h2 className="font-display font-bold text-3xl text-foreground glow-text">
-                  Pathology Literature Radar
+                <h2 className="font-display font-bold text-2xl text-foreground">
+                  Pathology Literature Scanner
                 </h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Scan {PATHOLOGY_JOURNALS.length} pathology journals for the latest
-                  7-day publications. Detect trending topics and generate a
-                  structured weekly report.
+                  Scan {PATHOLOGY_JOURNALS.length} pathology journals for publications
+                  from the last 30 days. Detect trending research topics and generate
+                  a structured monthly report.
                 </p>
               </div>
 
               <ScanButton isScanning={false} onScan={handleScan} />
 
-              <div className="flex items-center gap-6 text-xs font-mono text-dim">
+              <div className="flex items-center gap-6 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5">
                   <BookOpen className="w-3.5 h-3.5" />
                   {PATHOLOGY_JOURNALS.length} journals
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5" />
-                  PubMed E-utilities
+                  <Calendar className="w-3.5 h-3.5" />
+                  30-day window
                 </span>
               </div>
             </motion.div>
@@ -135,16 +128,9 @@ export default function Index() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex flex-col items-center justify-center min-h-[60vh] space-y-8"
+              className="flex flex-col items-center justify-center min-h-[55vh] space-y-8"
             >
-              <motion.div
-                animate={{ rotate: [0, 360] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                className="w-16 h-16 rounded-full border-2 border-primary/30 border-t-primary flex items-center justify-center"
-              >
-                <Radar className="w-8 h-8 text-primary" />
-              </motion.div>
-
+              <div className="w-12 h-12 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
               <ScanProgressIndicator progress={progress} />
             </motion.div>
           )}
@@ -152,26 +138,21 @@ export default function Index() {
           {results && (
             <motion.div
               key="results"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="space-y-8"
             >
               {/* Summary bar */}
-              <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-card border border-border rounded-lg">
+              <div className="flex flex-wrap items-center justify-between gap-4 p-5 bg-card border border-border rounded-lg">
                 <div className="space-y-1">
                   <h2 className="font-display font-bold text-xl text-foreground">
-                    Weekly Trend Report
+                    Monthly Pathology Trend Report
                   </h2>
-                  <p className="text-sm text-muted-foreground font-mono">
-                    {scanDate?.toLocaleDateString("en-US", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
+                  <p className="text-sm text-muted-foreground">
+                    {monthYear}
                   </p>
                 </div>
-                <div className="flex items-center gap-6 text-sm font-mono">
+                <div className="flex items-center gap-8 text-sm">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-primary">{totalArticles}</div>
                     <div className="text-xs text-muted-foreground">articles scanned</div>
@@ -185,7 +166,7 @@ export default function Index() {
               </div>
 
               {/* Topic cards */}
-              <div className="space-y-6">
+              <div className="space-y-5">
                 {results.map((r, i) => (
                   <TrendCard
                     key={r.topic.phrase}
