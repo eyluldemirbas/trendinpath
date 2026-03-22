@@ -1,73 +1,82 @@
-# Welcome to your Lovable project
+# TrendInPath
 
-## Project info
+TrendInPath is a lightweight literature analysis tool that identifies emerging research topics in pathology.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+The platform scans recent publications from leading pathology journals, clusters related papers into research themes, and compares topic frequency across time to highlight rising or declining trends.
 
-## How can I edit this code?
+🔗 Live application  
+https://trendinpath.lovable.app/
 
-There are several ways of editing your application.
+---
 
-**Use Lovable**
+## Features
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+• Rolling 3-month literature window  
+• Topic clustering of PubMed articles  
+• Subspecialty filtering (dermatopathology, GI pathology, hematopathology, etc.)  
+• Trend comparison (rising / stable / declining topics)  
+• Export results to Excel, CSV, or Markdown  
 
-Changes made via Lovable will be committed automatically to this repo.
+---
 
-**Use your preferred IDE**
+## Example Output
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+TrendInPath organizes recent publications into interpretable research themes.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Examples of detected topics may include:
 
-Follow these steps:
+- Tumor immune microenvironment  
+- AI-assisted histopathology  
+- Molecular classification of tumors  
+- Viral-associated malignancies  
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Each topic groups related papers and highlights whether the research activity appears to be increasing or decreasing.
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+---
 
-# Step 3: Install the necessary dependencies.
-npm i
+## Data Sources
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+TrendInPath retrieves articles through:
 
-**Edit a file directly in GitHub**
+- PubMed
+- Selected leading pathology journals
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Articles are filtered and analyzed within a rolling 90-day window.
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Methodology
 
-## What technologies are used for this project?
+The analysis pipeline consists of:
 
-This project is built with:
+1. Literature retrieval from PubMed
+2. Filtering of low-signal publications (case reports, editorials, etc.)
+3. Text feature extraction using titles, MeSH terms, and keywords
+4. Topic clustering
+5. Trend comparison between recent and baseline time windows
+6. Topic summarization
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+More details:  
+`docs/methodology.md`
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## Purpose
 
-## Can I connect a custom domain to my Lovable project?
+TrendInPath was built as an exploratory tool to investigate whether clustering recent literature could help researchers quickly identify emerging directions in pathology.
 
-Yes, you can!
+It is not intended to replace systematic literature searches.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+---
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Feedback
+
+Suggestions and improvements are welcome.
+
+If you have ideas or notice issues, feel free to open an issue in this repository.
+
+---
+
+## License
+
+MIT License
